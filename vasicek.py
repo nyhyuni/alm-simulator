@@ -44,36 +44,34 @@ def simulate_vasicek_paths(
     )
 
 
-paths = simulate_vasicek_paths()
+if __name__ == "__main__":
+    paths = simulate_vasicek_paths()
 
-print(paths.head())
-print(paths.shape)
+    plt.figure(figsize=(12, 6))
 
-plt.figure(figsize=(12, 6))
+    # Plot only first 100 paths so chart is readable
+    plt.plot(paths.index, paths.iloc[:, :100], linewidth=0.5, alpha=0.4)
 
-# Plot only first 100 paths so chart is readable
-plt.plot(paths.index, paths.iloc[:, :100], linewidth=0.5, alpha=0.4)
+    plt.xlabel("Years")
+    plt.ylabel("Interest Rate")
+    plt.title("Simulated Vasicek Interest Rate Paths")
+    plt.show()
 
-plt.xlabel("Years")
-plt.ylabel("Interest Rate")
-plt.title("Simulated Vasicek Interest Rate Paths")
-plt.show()
+    mean_path = paths.mean(axis=1)
+    p5 = paths.quantile(0.05, axis=1)
+    p50 = paths.quantile(0.50, axis=1)
+    p95 = paths.quantile(0.95, axis=1)
 
-mean_path = paths.mean(axis=1)
-p5 = paths.quantile(0.05, axis=1)
-p50 = paths.quantile(0.50, axis=1)
-p95 = paths.quantile(0.95, axis=1)
+    plt.figure(figsize=(12, 6))
 
-plt.figure(figsize=(12, 6))
+    plt.plot(paths.index, mean_path, label="Mean")
+    plt.plot(paths.index, p5, label="5th percentile")
+    plt.plot(paths.index, p50, label="Median")
+    plt.plot(paths.index, p95, label="95th percentile")
 
-plt.plot(paths.index, mean_path, label="Mean")
-plt.plot(paths.index, p5, label="5th percentile")
-plt.plot(paths.index, p50, label="Median")
-plt.plot(paths.index, p95, label="95th percentile")
-
-plt.xlabel("Years")
-plt.ylabel("Interest Rate")
-plt.title("Vasicek Scenario Distribution")
-plt.legend()
-plt.show()
+    plt.xlabel("Years")
+    plt.ylabel("Interest Rate")
+    plt.title("Vasicek Scenario Distribution")
+    plt.legend()
+    plt.show()
 
