@@ -1,0 +1,87 @@
+import numpy as np
+
+from bond import price_bond_from_path
+from alm import price_asset_portfolio_from_path
+
+
+def bond_sensitivity(
+    rate_path,
+    bump_bp=1.0,
+    face=100,
+    coupon_rate=0.05,
+    maturity=10,
+    steps_per_year=252,
+):
+    """Measure sensitivity to a parallel shift of the short-rate path."""
+    rates = np.asarray(rate_path, dtype=float)
+
+    if rates.ndim != 1 or not np.isfinite(rates).all():
+        raise ValueError("rate_path must be a finite one-dimensional array")
+    if maturity <= 0 or steps_per_year <= 0:
+        raise ValueError("maturity and steps_per_year must be positive")
+    if len(rates) < maturity * steps_per_year:
+        raise ValueError("rate_path does not cover the bond's maturity")
+    if not np.isfinite(bump_bp) or bump_bp <= 0:
+        raise ValueError("bump_bp must be positive and finite")
+
+    bump = bump_bp / 10_000
+
+    def price(path):
+        return price_bond_from_path(
+            path,
+            face=face,
+            coupon_rate=coupon_rate,
+            maturity=maturity,
+            steps_per_year=steps_per_year,
+        )
+
+    base_price = price(rates)
+    up_price = price(rates + bump)
+    down_price = price(rates - bump)
+
+    if not np.isfinite([base_price, up_price, down_price]).all():
+        raise ValueError("Prices must be finite")
+    if base_price <= 0:
+        raise ValueError("Base price must be positive")
+
+    dollar_duration = (down_price - up_price) / (2 * bump)
+    dollar_convexity = (up_price - 2 * base_price + down_price) / bump**2
+
+    return {
+        "price": float(base_price),
+        "pv01": float(dollar_duration / 10_000),
+        "duration": float(dollar_duration / base_price),
+        "convexity": float(dollar_convexity / base_price),
+    }
+
+
+def portfolio_sensitivity(rate_path, bump_bp=1.0):
+    """Measure sensitivity of the fixed 2Y/5Y/10Y asset portfolio."""
+    rates = np.asarray(rate_path, dtype=float)
+
+    if rates.ndim != 1 or len(rates) < 10 * 252:
+        raise ValueError("Provide a rate path covering at least 10 years")
+    if not np.isfinite(rates).all():
+        raise ValueError("Rates must be finite")
+    if not np.isfinite(bump_bp) or bump_bp <= 0:
+        raise ValueError("bump_bp must be positive and finite")
+
+    bump = bump_bp / 10000
+    base_value = price_asset_portfolio_from_path(rates)
+    up_value = price_asset_portfolio_from_path(rates + bump)
+    down_value = price_asset_portfolio_from_path(rates - bump)
+
+    if not np.isfinite([base_value, up_value, down_value]).all():
+        raise ValueError("Portfolio values must be finite")
+    if base_value <= 0:
+        raise ValueError("Base portfolio value must be positive")
+
+    dollar_duration = (down_value - up_value) / (2 * bump)
+    dollar_convexity = (up_value - 2 * base_value + down_value) / bump**2
+
+    return {
+        "value": float(base_value),
+        "pv01": float(dollar_duration / 10000),
+        "duration": float(dollar_duration / base_value),
+        "convexity": float(dollar_convexity / base_value),
+    }
