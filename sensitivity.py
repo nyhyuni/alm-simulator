@@ -1,7 +1,30 @@
 import numpy as np
 
 from bond import price_bond_from_path
-from alm import price_asset_portfolio_from_path
+from alm import price_asset_portfolio_from_path, price_liability_from_path
+
+
+def liability_pv01(rate_path, annual_payment=10, years=15, steps_per_year=252):
+    """Estimate the liability value decrease for a one-basis-point rate increase."""
+    rates = np.asarray(rate_path, dtype=float)
+    if rates.ndim != 1 or not np.isfinite(rates).all():
+        raise ValueError("rate_path must be a finite one-dimensional array")
+    if years <= 0 or steps_per_year <= 0:
+        raise ValueError("years and steps_per_year must be positive")
+    if len(rates) < years * steps_per_year:
+        raise ValueError("rate_path does not cover the liability payments")
+    if not np.isfinite(annual_payment) or annual_payment < 0:
+        raise ValueError("annual_payment must be nonnegative and finite")
+
+    bump = 1 / 10000
+    up_value = price_liability_from_path(
+        rates + bump, annual_payment, years, steps_per_year,
+    )
+    down_value = price_liability_from_path(
+        rates - bump, annual_payment, years, steps_per_year,
+    )
+
+    return float((down_value - up_value) / 2)
 
 
 def bond_sensitivity(
