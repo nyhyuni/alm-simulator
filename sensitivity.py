@@ -108,3 +108,11 @@ def portfolio_sensitivity(rate_path, bump_bp=1.0):
         "duration": float(dollar_duration / base_value),
         "convexity": float(dollar_convexity / base_value),
     }
+
+
+def surplus_pv01(rate_path, annual_payment=10, years=15):
+    """Estimate the surplus decrease for a one-basis-point rate increase."""
+    asset_pv01 = portfolio_sensitivity(rate_path)["pv01"]
+    payment_pv01 = liability_pv01(rate_path, annual_payment=annual_payment, years=years)
+
+    return asset_pv01 - payment_pv01
