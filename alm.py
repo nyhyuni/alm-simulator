@@ -45,7 +45,7 @@ def price_asset_portfolio_from_path(rate_path):
     return total_value
 
 
-def run_alm_simulation(paths):
+def run_alm_simulation(paths, annual_payment=10, years=15):
     asset_values = []
     liability_values = []
     surplus_values = []
@@ -54,7 +54,9 @@ def run_alm_simulation(paths):
         rate_path = paths[col].values
 
         asset_value = price_asset_portfolio_from_path(rate_path)
-        liability_value = price_liability_from_path(rate_path)
+        liability_value = price_liability_from_path(
+            rate_path, annual_payment=annual_payment, years=years,
+        )
         surplus = asset_value - liability_value
 
         asset_values.append(asset_value)
