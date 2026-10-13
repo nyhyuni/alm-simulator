@@ -53,7 +53,23 @@ def run_simulation(
     asset_pv01 = float(np.mean(asset_pv01s))
     payment_pv01 = float(np.mean(liability_pv01s))
 
+    # Monthly samples keep the browser chart small; valuation uses every step.
+    chart_paths = paths.iloc[::21]
+    # Match the discounting used in bond and liability pricing.
+    cumulative_rates = np.vstack((np.zeros(paths.shape[1]),
+                                  np.cumsum(paths.to_numpy()[:-1], axis=0)))
+    discount_factors = np.exp(-cumulative_rates / 252)
+    rates = {
+        "years": chart_paths.index.tolist(),
+        "discount": discount_factors[::21].mean(axis=1).tolist(),
+        "mean": chart_paths.mean(axis=1).tolist(),
+        "p5": chart_paths.quantile(.05, axis=1).tolist(),
+        "p95": chart_paths.quantile(.95, axis=1).tolist(),
+        "samples": chart_paths.iloc[:, :8].to_numpy().T.tolist(),
+    }
+
     return {
+        "rates": rates,
         "assets": float(assets.mean()),
         "liabilities": float(liabilities.mean()),
         "surplus": float(surplus.mean()),

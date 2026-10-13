@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ALM simulator</title><link rel="stylesheet" href="style.css"><link rel="icon" href="data:,"></head>
+<body>
+<header><a href="/" class="brand"><span class="brand-mark">A</span> ALM simulator</a><span class="header-note">Python · scenario analysis</span></header>
+<main>
+<section class="intro"><div><h1>Asset–liability scenarios</h1><p>An insurer invests assets to fund future policyholder payments. This small model explores how changing interest rates affect the value of both.</p></div></section>
+<div class="workspace">
+<section class="panel assumptions"><div class="panel-title"><h2>Assumptions</h2></div>
+<form id="assumptions">
+<label>Rate model<select name="model"><option value="vasicek">Vasicek</option><option value="random">Random walk</option></select></label><p class="field-note" id="model-note">Vasicek: rates fluctuate but are pulled toward a long-term level.</p>
+<input name="r0" type="hidden" value="4">
+<input name="sigma" type="hidden" value="1">
+<input name="b" type="hidden" value="4.5">
+<input name="a" type="hidden" value="0.3">
+<div class="chart-controls">
+<label>Initial rate <output id="chart-r0-value">4%</output><input id="chart-r0" data-rate-control="r0" type="range" min="-10" max="30" step="0.1" value="4"><small class="control-help">The interest rate at the start of every scenario.</small></label>
+<label>Volatility <output id="chart-sigma-value">1%</output><input id="chart-sigma" data-rate-control="sigma" type="range" min="0" max="10" step="0.1" value="1"><small class="control-help">How strongly random shocks move rates. Higher values create a wider spread of outcomes.</small></label>
+<label data-chart-vasicek>Long-term rate <output id="chart-b-value">4.5%</output><input id="chart-b" data-rate-control="b" type="range" min="-10" max="30" step="0.1" value="4.5"><small class="control-help">The level rates tend toward in the Vasicek model.</small></label>
+<label data-chart-vasicek>Mean reversion <output id="chart-a-value">0.3</output><input id="chart-a" data-rate-control="a" type="range" min="0" max="5" step="0.05" value="0.3"><small class="control-help">How quickly rates are pulled toward the long-term level. Zero means no pull.</small></label>
+</div>
+<hr>
+<label>Annual liability payment <span>model units</span><input name="payment" type="number" value="10" min="0" max="1000" step="1" required><small class="control-help">The fixed amount paid at the end of each year. Higher payments increase liabilities.</small></label>
+<label>Horizon <span>years</span><input name="years" type="number" value="15" min="10" max="30" step="1" required><small class="control-help">How many years of rates and annual liability payments to model.</small></label>
+<details class="advanced"><summary>Advanced settings</summary><label>Scenarios<input name="paths" type="number" value="100" min="10" max="1000" step="10" required><small class="control-help">Number of simulated futures. More scenarios give a steadier estimate but take longer.</small></label><label>Random seed<input name="seed" type="number" value="42" min="0" max="4294967295" step="1" required><small class="control-help">Sets the random shocks. Keep it fixed when comparing assumptions.</small></label></details>
+<p class="field-note">Results update automatically after you pause.</p>
+<button id="restore" class="secondary reset-button" type="button" disabled>Reset to starting assumptions</button>
+<p id="error" role="alert"></p>
+</form>
+<div class="allocation"><h3>Asset portfolio</h3><p class="allocation-explanation">The asset value above comes from this mix of short-, medium-, and long-term bonds.</p><div class="allocation-bar"><i></i><i></i><i></i></div><div><span>2-year bond</span><b>25%</b></div><div><span>5-year bond</span><b>35%</b></div><div><span>10-year bond</span><b>40%</b></div><p>Face value 100 · annual coupons<br>3.5%, 4.5%, and 5%, respectively</p><p>These are chosen example weights, not calibrated or optimized. The portfolio stays fixed to isolate the effect of changing interest rates.</p></div>
+</section>
+<section class="results" aria-label="Simulation results" aria-busy="true">
+<div class="results-title"><h2>Simulation results</h2><span id="status" role="status">Preparing starting assumptions…</span></div>
+<div class="metrics"><article class="panel"><span>Mean asset value</span><strong id="assets">—</strong><small>Bond cash flows, discounted</small><p id="assets-delta">Comparison pending</p></article><article class="panel"><span>Mean liability value</span><strong id="liabilities">—</strong><small>Future payments, discounted</small><p id="liabilities-delta">Comparison pending</p></article><article class="panel surplus-card"><span>Mean surplus</span><strong id="surplus">—</strong><small>Assets minus liabilities</small><p id="surplus-delta">Comparison pending</p></article></div>
+<article class="panel rate-panel">
+<div class="panel-title"><div><h2>Interest rates through time</h2><p>The blue vertical marker shows the model’s 90% rate range at the selected year. Hover over the graph to inspect a year. On touchscreens, tap or drag.</p></div></div>
+<p class="chart-update-note" id="chart-update-note" role="status">Change an assumption to update the curves and balance sheet.</p>
+<div class="rate-options"><label><input id="show-mean" type="checkbox" checked><i class="line-key current-key" aria-hidden="true"></i> Current scenario average</label><label><input id="show-band" type="checkbox" checked><i class="line-key range-key" aria-hidden="true"></i> 90% range at selected year</label><label><input id="show-paths" type="checkbox" checked><i class="line-key paths-key" aria-hidden="true"></i> Sample paths</label><label><input id="show-baseline" type="checkbox" checked><i class="line-key starting-key" aria-hidden="true"></i> Original scenario average</label></div>
+<svg id="rate-chart" viewBox="0 0 720 260" role="img" aria-label="Interest rate scenarios" tabindex="0"></svg>
+
+<div class="chart-stats"><div><span>Year</span><b id="time-value">—</b></div><div><span>Mean rate</span><b id="rate-mean">—</b></div><div><span>Simulated 5th–95th percentile</span><b id="rate-range">—</b></div></div><div class="discount-readout"><h3>A $1 payment at year <span id="payment-year">0</span></h3><p>What that $1 is worth today · scenario average</p><div><span>Starting assumptions <b id="baseline-discount">—</b></span><span>Current <b id="latest-discount">—</b></span><span>Change <b id="discount-change">—</b></span></div><p id="discount-explanation">Move through time to inspect discounting.</p><ul class="discount-footnote"><li><strong>Starting assumptions:</strong> saved reference run.</li><li><strong>Current:</strong> most recent completed run.</li><li><strong>Change:</strong> current minus starting assumptions.</li><li>Higher rates generally lower a future payment’s value today.</li></ul></div>
+</article>
+<article class="panel chart-panel"><div class="panel-title"><div><h2>Surplus across scenarios</h2><p>Each scenario produces a different balance-sheet gap.</p></div><span class="legend"><i></i> Current</span></div><svg id="histogram" viewBox="0 0 720 235" role="img" aria-label="Surplus distribution; waiting for results"></svg><div class="chart-stats"><div><span>5th percentile</span><b id="p5">—</b></div><div><span>95th percentile</span><b id="p95">—</b></div><div><span>Scenarios below zero</span><b id="deficit">—</b></div></div></article>
+<article class="panel sensitivity-panel"><div class="panel-title"><div><h2>What if rates rise by 1 basis point?</h2><p>1 basis point means moving rates from, for example, 4.00% to 4.01%. All rates shift together; payments stay fixed.</p></div></div><table><thead><tr><th>Estimated mean change · model units</th><th>Starting assumptions</th><th>Current</th></tr></thead><tbody id="pv01"><tr><td colspan="3">Run a simulation to see sensitivities.</td></tr></tbody></table><p class="sensitivity-note" id="pv01-note">Positive means the value increases; negative means it decreases.</p><p class="sensitivity-note sensitivity-method">Estimated change = −PV01, using a symmetric ±1 bp sensitivity. Values are rounded to 3 decimal places.</p></article>
+<p class="comparison-summary" id="comparison-note">Results are compared with your starting assumptions.</p>
+</section></div>
+<details class="limitations"><summary>Model assumptions & limitations</summary><p>Assets are a fixed weighted bond portfolio. Liabilities are level annual payments, without mortality, lapses, expenses, guarantees, or rebalancing. Rates are synthetic, with 252 steps per year; they are not calibrated to market data. Cash flows use continuous discounting along each path. PV01 shifts the entire rate path and holds cash flows fixed. Monetary values are model units, not an actual insurer's balance sheet. A negative surplus is not a regulatory solvency assessment.</p></details>
+<footer><span>ALM simulator</span><span>Values in model units</span></footer>
+</main><script src="app.js"></script>
+</body></html>
